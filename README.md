@@ -2,7 +2,7 @@
 
 A ROS2 package integrating large language models (LLMs) to control Universal Robots, leveraging the ROSA framework for natural langauge based robotic manipulation. This integration bridges the gap between robotics and intuitive, user-friendly control interfaces.
 ## llm-ur-control Demo
-[Watch the Demo Video](videos/uragent_demo.mp4)
+[Watch the Demo Video](video/uragent_demo.mp4)
 ## Features
 
 - **LLM Integration of Universal Robots:** Seamlessly interact with and control the Universal Robot (UR) using natural language commands through large language models (LLMs) such as ChatGPT.
