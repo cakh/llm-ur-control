@@ -306,3 +306,4 @@ What is the current position of the TCP
 ```
 ## Bugs
 - The commands may not work consistently, as the same request to the Agent can sometimes succeed and other times fail. This behavior appears to stem from the inherent limitations of large language models (LLMs), which can introduce variability in interpreting and processing commands.
+- If there is an error finding the pose of the tcp or moving the tcp, ask the agent to switch from _scaled_joint_trajectory_controller_ to _cartesian_motion_controller_. The agent is supposed to do this on its own as mentioned in the _prompts.py_ but misses this step sometimes.
