@@ -5,16 +5,15 @@ A ROS2 package integrating large language models (LLMs) to control Universal Rob
 ## Features
 
 - **LLM Integration of Universal Robots:** Seamlessly interact with and control the Universal Robot (UR) using natural language commands through large language models (LLMs) such as ChatGPT.
-- **Read Current Joint States:** Query the robot's state with intuitive commands like, _"What are the current joint angles in degrees?"_ to retrieve the joint positions. The agent listens to the _/joint_states_ topic to fetch real-time joint positions and processes the data for user-friendly responses.
-- **Read Current TCP Pose:** Query the robot's Tool Center Point (TCP) Pose with commands like, _"What is the current TCP Position"_ to retrieve the current end effector pose. The agent reads the position from the custom service (cartesian_motion_server).
-- **Joint Motion Commands:** Issue joint motion commands with natural language, such as, _"Move the robot to joint positions -90, -90, -90, 90, 45, 180,"_ to initiate joint movements. The agent leverages the _/scaled_joint_trajectory_controller_ to move the robot joints.
-- **Cartesian Motion Commands:** Control the robot's TCP directly in Cartesian space using commands like, _"Move the end effector 30cm in the z direction"_ to move the TCP upward. The agent communicates with the custom service (cartesian_motion_server) which uses _/cartesian_motion_controller_ to change the TCP Pose.
-- **Controller Management:** Enables switching the controller that is controlling the robot between _cartesian_motion_controller_ and _scaled_joint_trajectory_controller_.
+- **Read Current Joint States:** Query the robot's state with intuitive commands like, _"What are the current joint angles in degrees?"_.
+- **Joint Motion Commands:** Issue joint motion commands with natural language, such as, _"Move the robot to joint positions -90, -90, -90, 90, 45, 180,"_. 
+- **Cartesian Motion Commands:** Control the robot's TCP directly in Cartesian space using commands like, _"Move the end effector 30cm in the z direction"_. 
 - **More features in planning** If you want any features, open up an issue.
+- For more features and capabilites refer to the [Tools and Capabilities](#tools-and-capabilities) section.
 
 ## ⚠️ Warning: Test Phase
 
-This project is currently in the **test phase** and may cause the robot to move unexpectedly or randomly. 
+This project is currently in the **test phase** and may cause the robot to move unexpectedly or randomly. The project has been tested with ROS2 humble and UR5e robot.
 
 ### Recommendations:
 - **Use a simulated robot** for testing to avoid potential damage to physical hardware.
@@ -28,21 +27,27 @@ The author is **not responsible** for any issues, damages, or malfunctions that 
 Before using this package, ensure the following packages are installed and configured:
 
 1. **[UR Robot Driver](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver)**  
-   Establishes a connection between ROS2 and Universal Robots. Ensure that you are able to command the robot with this package, for instance using MoveIt! The package has to be installed in the same workspace as the llm-ur-control.
+   Establishes a connection between ROS2 and Universal Robots. Source (!) install this package and ensure that you are able to command the robot, for instance using MoveIt!
 
-2. **[ROSA Package](https://github.com/nasa-jpl/rosa)**  
+   **Tip** If the robot does not move, check if the _scaled_joint_trajectory_controller_ is active.
+
+3. **[ROSA Package](https://github.com/nasa-jpl/rosa)**  
    Enables integration of large language models with ROS2. It is not required to install the package from source, instead you can install the ROSA using
    ```bash
    pip3 install jpl-rosa
    ```
 To ensure proper functionality, test the package using the Docker container provided in its repository. This step is crucial for verifying that all necessary configurations for integrating the LLM with ROS (such as adding the API key) have been completed.
 
-4. **[Cartesian Controller](https://github.com/fzi-forschungszentrum-informatik/cartesian_controllers)**  
+3. **[Cartesian Controller](https://github.com/fzi-forschungszentrum-informatik/cartesian_controllers)**  
    Provides Cartesian control for use in ROS2. The package has to be installed in the same workspace as the llm-ur-control. llm-ur-control utilizes the _cartesian_motion_controller_ from this package to enable TCP motion in cartesian space.
+
+   **Tip** After cloning the repo, you can safely delete the folders _cartesian_controller_simulation_ and _cartesian_controller_tests_ for colcon build to complete successfully.
 
 ## Installation
 
-1. Make sure that all the dependencies are properly installed and working.
+1. Install [ROS2](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html). The package has been tested on ROS2 humble. Support for any other distribution cannot be guaranteed.
+
+3. Make sure that all the dependencies are properly installed and working.
 
 1. Clone the repository:
 
