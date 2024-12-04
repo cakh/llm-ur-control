@@ -1,0 +1,9 @@
+string class_name
+int64 top
+int64 left
+int64 bottom
+int64 right
+int64 box_width
+int64 box_height
+float64 x
+float64 y

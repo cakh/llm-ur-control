@@ -1,0 +1,30 @@
+{
+  "python.autoComplete.extraPaths": [
+    "/home/cakh/ur_ws/install/ur_robot_driver/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/ur_moveit_config/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/ur_dashboard_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/srdfdom/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/realsense2_camera_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/mecheye_ros_interface/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/custom_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/bench_detector/lib/python3.10/site-packages",
+    "/home/cakh/ur_ws/install/advanced_perception/lib/python3.10/site-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages",
+    "/usr/local/lib/python3.8/dist-packages/tensorflow/models/research"
+  ],
+  "python.analysis.extraPaths": [
+    "/home/cakh/ur_ws/install/ur_robot_driver/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/ur_moveit_config/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/ur_dashboard_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/srdfdom/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/realsense2_camera_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/mecheye_ros_interface/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/custom_msgs/local/lib/python3.10/dist-packages",
+    "/home/cakh/ur_ws/install/bench_detector/lib/python3.10/site-packages",
+    "/home/cakh/ur_ws/install/advanced_perception/lib/python3.10/site-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages",
+    "/usr/local/lib/python3.8/dist-packages/tensorflow/models/research"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/cakh/ur_ws/install/ur_calibration/include/**",
+        "/home/cakh/ur_ws/install/ur_robot_driver/include/**",
+        "/home/cakh/ur_ws/install/ur_controllers/include/**",
+        "/home/cakh/ur_ws/install/ur_dashboard_msgs/include/**",
+        "/home/cakh/ur_ws/install/simple_grasping/include/**",
+        "/home/cakh/ur_ws/install/realsense2_camera/include/**",
+        "/home/cakh/ur_ws/install/moveit_core/include/**",
+        "/home/cakh/ur_ws/install/mecheye_ros_interface/include/**",
+        "/home/cakh/ur_ws/install/custom_msgs/include/**",
+        "/home/cakh/ur_ws/install/cartesian_compliance_controller/include/**",
+        "/home/cakh/ur_ws/install/cartesian_motion_controller/include/**",
+        "/home/cakh/ur_ws/install/cartesian_force_controller/include/**",
+        "/home/cakh/ur_ws/install/cartesian_controller_handles/include/**",
+        "/home/cakh/ur_ws/install/cartesian_controller_base/include/**",
+        "/opt/ros/humble/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
