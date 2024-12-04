@@ -52,13 +52,14 @@ To ensure proper functionality, test the package using the Docker container prov
 1. Clone the repository:
 
    ```bash
-   cd ros2_ws
+   cd ros2_ws/src
    git clone https://github.com/cakh/llm-ur-control.git
+   cd ..
    rosdep install --from-paths src --ignore-src -r -y
    ```
 
 2. Update UR Controller:
-   llm-ur-control utilizes the cartesian_motion_controller which is not used by the ur_robot_driver as default controller. Hence the file _ur_robot_driver/config/ur_controllers.yaml_ has to be modified with this controller. For this purpose, add the following lines:
+   llm-ur-control utilizes the cartesian_motion_controller which is not used by the ur_robot_driver as default controller. Hence the file _ur_robot_driver/config/ur_controllers.yaml_ has to be modified with this controller. For this purpose, add the following lines to the above mentioned file in the _ur_robot_driver_ package in your workspace:
     ```yaml
        cartesian_motion_controller:
          type: cartesian_motion_controller/CartesianMotionController
@@ -96,9 +97,9 @@ To ensure proper functionality, test the package using the Docker container prov
          rot_y: { p: 0.5 }
          rot_z: { p: 0.5 }
    ```
-An example of the modified _ur_controllers.yaml_ can be found in this repo under _src/ur_agent/config_
+An example of the modified _ur_controllers.yaml_ can be found in this repo under _ur_agent/config_
 
-4. Update the launch file of _ur_moveit_config_ under the _ur_robot_driver_ repo to spawn necessary controllers. Edit the _ur_moveit_config/launch/ur_moveit.launch.py_ to add the following code:
+4. Update the launch file of _ur_moveit_config_ under the _ur_robot_driver_ repo to spawn necessary controllers. Edit the _ur_moveit_config/launch/ur_moveit.launch.py_ to add the following code above the line 274 (nodes_to_start = ...):
    ```py
    cartesian_motion_controller_spawner = Node(
         package="controller_manager",
@@ -154,6 +155,10 @@ An example of the modified _ur_controllers.yaml_ can be found in this repo under
    - **To start the driver**, in a new terminal, run:
      ```bash
      ros2 launch ur_robot_driver ur_control.launch.py ur_type:=ur5e robot_ip:=192.168.56.101 launch_rviz:=false
+     ```
+     Make sure you see the following:
+     ```bash
+     [UR_Client_Library:]: Robot connected to reverse interface. Ready to receive control commands.
      ```
 
    - **To start MoveIt!**, in a new terminal, run:
@@ -299,3 +304,5 @@ The `Get Current Pose` tool allows you to retrieve the current position and orie
 ```plaintext
 What is the current position of the TCP
 ```
+## Bugs
+- The commands may not work consistently, as the same request to the Agent can sometimes succeed and other times fail. This behavior appears to stem from the inherent limitations of large language models (LLMs), which can introduce variability in interpreting and processing commands.
