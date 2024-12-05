@@ -67,26 +67,16 @@ def joint_state_callback(msg):
     global current_joint_states,joint_states_received
     current_joint_states = list(msg.position)
     joint_states_received = True
-    print(f"Updated joint states: {current_joint_states}")
 
 def pose_callback(msg):
     global current_ef_pose
     current_ef_pose = msg
-    print(f"Updated joint states: {current_joint_states}")
 
 @tool
 def publish_joint_positions(joint_positions: List[float], duration_sec: int = 5) -> str:
     """
-        Critical: Check if `scaled_joint_trajectory_controller` is active before running. If not activate `scaled_joint_trajectory_controller` before running.
-
-        Before running, check the current joint_states.
-
-        Publishes a `JointTrajectory` message to command the UR5e robot to move its six joints to specified positions.
-
-        The target joint positions (in radians) are provided as a list. If fewer than six positions are given, the remaining joints retain their current positions. The motion duration is specified in seconds.
-
-        This function ensures joint states are initialized, validates input length (max 6), and sends the trajectory message to `/scaled_joint_trajectory_controller/joint_trajectory`.
-
+        Publishes a `JointTrajectory` message to command the UR5e robot to move its joints to specified positions.
+        Crictical: Check if `scaled_joint_trajectory_controller` is active. If not active, activate it before running.
         :param joint_positions: List of up to six joint positions in radians.
         :param duration_sec: Motion duration in seconds (default: 5).
         :return: Success message or error details.
@@ -156,11 +146,7 @@ def retrieve_joint_states() -> str:
     """
         Retrieves the current joint states of the UR5e robot.
 
-        This function listens to the `/joint_states` topic to obtain the angles/positions of all robot joints (in radians). It waits until the joint states are initialized and returns them as a formatted string.
-
-        If joint states are unavailable, it returns an error message.
-
-        :return: Joint states as a formatted string (e.g., `[0.12, -0.56, 1.23]`) or an error message.
+        :return: Joint states as a formatted string or an error message.
     """
     global _shared_node, current_joint_states, joint_states_received
     initialize_node()
@@ -192,18 +178,7 @@ def list_controllers() -> str:
     """
     Retrieves the list of controllers and their statuses (active/inactive) from the robot.
 
-    This function queries the `/controller_manager/list_controllers` service to fetch the 
-    current controllers loaded on the robot. It checks which controllers are active and 
-    which are inactive, allowing the user to ensure that the correct controller is running 
-    before executing any motion commands.
-
-    The function returns a human-readable string representation of all controllers and 
-    their statuses. If the service is unavailable or an error occurs during the request, 
-    it returns an appropriate error message.
-
-    :return: A formatted string listing each controller's name and its status (e.g., 
-             "joint_state_controller: active\nscaled_joint_trajectory_controller: inactive"),
-             or an error message in case of failure.
+    :return: A formatted string listing each controller's name and its status or an error message in case of failure.
     """
     global _shared_node, controller_status_client
     initialize_node()
@@ -250,9 +225,6 @@ def switch_controllers(enable_controller: int, disable_controller: int) -> str:
     Controllers are identified by numbers:
     - 1: scaled_joint_trajectory_controller
     - 2: cartesian_motion_controller
-
-    The function communicates with the `/controller_manager/switch_controller` service
-    and returns a status message indicating success or failure.
 
     :param enable_controller: Number of the controller to enable.
     :param disable_controller: Number of the controller to disable.
@@ -308,19 +280,8 @@ def switch_controllers(enable_controller: int, disable_controller: int) -> str:
 @tool
 def cartesian_motion_request(x: float, y: float, z: float) -> str:
     """
-        Critical: Check if `cartesian_motion_controller` is active before executing. If not activate `cartesian_motion_controller` before running.
-
-        Critical: check the current end effector pose using get_current_pose tool before running this. Do not use ros2 topic echo for this purpose
-
-        Critical: all the values should be provided as float (0.0 instead of 0)
-
-        Do not change the robot orientation unless exxplicitly requested.
-
-        Sends a synchronous `MoveToPose` request to move the robot's TCP to a specified position and orientation.
-
-        The pose is defined by Cartesian coordinates (`x`, `y`, `z` in meters) and quaternion orientation (`qx`, `qy`, `qz`, `qw`).
-
-        This function communicates with the `move_to_pose` service and returns the result.
+        Moves the robot TCP to the mentioned cartesian position,
+        If `cartesian_motion_controller` is not active, activate it before running.
 
         :param x: Target x-coordinate (meters).
         :param y: Target y-coordinate (meters).
@@ -361,16 +322,12 @@ def cartesian_motion_request(x: float, y: float, z: float) -> str:
         error_msg = f"Error moving the robot: {e}"
         print(error_msg)
         return error_msg
-
+    
 @tool
 def get_current_pose() -> str:
     """
-        Critical: Check if `cartesian_motion_controller` is active before executing. If not activate `cartesian_motion_controller` before running.
-        Retrieves the current end effector pose of the robot. This is required so that you know the position of end effector before making a cartesian motion.
-        
-        This function listens for the current pose of the robot's Tool Center Point (TCP)
-        and waits until the pose is updated or the timeout expires. The pose includes 
-        Cartesian coordinates (`x`, `y`, `z`) and quaternion orientation (`qx`, `qy`, `qz`, `qw`).
+        Retrieves the current end effector pose of the robot in Cartesian coordinates (`x`, `y`, `z`) and quaternion orientation (`qx`, `qy`, `qz`, `qw`).
+        If `cartesian_motion_controller` is not active, activate it before running.
 
         :return: Current pose as a formatted string or an error message.
     """

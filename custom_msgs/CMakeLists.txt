@@ -28,10 +28,6 @@ if(BUILD_TESTING)
 endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/InferenceResult.msg"
-  "msg/Yolov8Inference.msg"
-  "msg/DetectedSurfaces.msg"
-  "msg/DetectedObjects.msg"
   "srv/MoveToPose.srv"
   DEPENDENCIES std_msgs geometry_msgs# Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )

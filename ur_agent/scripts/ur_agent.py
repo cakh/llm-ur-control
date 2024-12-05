@@ -72,7 +72,7 @@ class URAgent(ROSA):
             blacklist=self.__blacklist,
             prompts=self.__prompts,
             verbose=verbose,
-            accumulate_chat_history=True,
+            accumulate_chat_history=False,
             streaming=streaming,
         )
         print("Tools registered:")
