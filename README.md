@@ -1,14 +1,14 @@
 # llm-ur-control
 
-A ROS2 package integrating large language models (LLMs) to control Universal Robots, leveraging the ROSA framework for natural langauge based robotic manipulation. This integration bridges the gap between robotics and intuitive, user-friendly control interfaces.
+A ROS2 package integrating large language models (LLMs) to control Universal Robots, leveraging the ROSA framework for natural langauge based robotic manipulation.
 ## llm-ur-control Demo
 [![Demo Video](https://img.youtube.com/vi/Ooi772csa10/0.jpg)](https://youtu.be/Ooi772csa10)
 ## Features
 
 - **LLM Integration of Universal Robots:** Seamlessly interact with and control the Universal Robot (UR) using natural language commands through large language models (LLMs) such as ChatGPT.
 - **Read Current Joint States:** Query the robot's state with intuitive commands like, _"What are the current joint angles in degrees?"_.
-- **Joint Motion Commands:** Issue joint motion commands with natural language, such as, _"Move the robot to joint positions -90, -90, -90, 90, 45, 180,"_. 
-- **Cartesian Motion Commands:** Control the robot's TCP directly in Cartesian space using commands like, _"Move the end effector 30cm in the z direction"_. 
+- **Joint Motion Commands:** Issue joint motion commands with natural language, such as, _"Move the wrist1 joint by 30 degrees"_. 
+- **Cartesian Motion Commands:** Control the robot's TCP directly in Cartesian space using commands like, _"Move the end effector 30cm up"_. 
 - **More features in planning** If you want any features, open up an issue.
 - For more features and capabilites refer to the [Tools and Capabilities](#tools-and-capabilities) section.
 
@@ -50,7 +50,7 @@ To ensure proper functionality, test the package using the Docker container prov
 
 3. Make sure that all the dependencies are properly installed and working.
 
-1. Clone the repository:
+1. Clone this repository:
 
    ```bash
    cd ros2_ws/src
@@ -100,7 +100,7 @@ To ensure proper functionality, test the package using the Docker container prov
    ```
 An example of the modified _ur_controllers.yaml_ can be found in this repo under _ur_agent/config_
 
-4. Update the launch file of _ur_moveit_config_ under the _ur_robot_driver_ repo to spawn necessary controllers. Edit the _ur_moveit_config/launch/ur_moveit.launch.py_ to add the following code above the line 274 (nodes_to_start = ...):
+4. Update the launch file of _ur_moveit_config_ under the _ur_robot_driver_ repo to spawn cartesian_motion_controller. Edit the _ur_moveit_config/launch/ur_moveit.launch.py_ to add the following code above the line 274 (nodes_to_start = ...):
    ```py
    cartesian_motion_controller_spawner = Node(
         package="controller_manager",
@@ -109,17 +109,11 @@ An example of the modified _ur_controllers.yaml_ can be found in this repo under
         output="screen",
         arguments=["cartesian_motion_controller"],
     )
-    scaled_trajectory_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        name="scaled_joint_trajectory_controller",
-        output="screen",
-        arguments=["scaled_joint_trajectory_controller"],
-    )
+
    ```
-   and modify the _nodes_to_start_ variable to include both these controllers:
+   and modify the _nodes_to_start_ variable to include this controller spawner:
       ```py
-    nodes_to_start = [move_group_node, rviz_node, servo_node, cartesian_motion_controller_spawner, scaled_trajectory_controller_spawner]
+    nodes_to_start = [move_group_node, rviz_node, servo_node, cartesian_motion_controller_spawner]
 
    ```
       An example of the modified _ur_moveit_config/launch/ur_moveit.launch.py_ can be found in this repo under _src/ur_agent/config_
@@ -171,7 +165,7 @@ An example of the modified _ur_controllers.yaml_ can be found in this repo under
    - Open RViz and ensure that you can move the robot using the interactive marker.
    - Use _Plan & Execute_ in Rviz to execute robot motion.
    - If this step does not work, check whether the _scaled_joint_trajectory_controller_ is active.
-   - Without the robot (simulated or real) being successfully controlled in this step, the agent will not be able to execute any motion commands.
+   - Without the robot (simulated or real) being successfully controlled in this step, the agent will probably not be able to execute motion commands.
      
 3. **Start the services for ur_agent**
    - Launch the services for the ur_agent by running:
@@ -185,6 +179,7 @@ An example of the modified _ur_controllers.yaml_ can be found in this repo under
      ros2 run ur_agent ur_agent.py 
      ```
 You should see the following on your terminal:
+![Screenshot from 2024-12-10 19-31-04](https://github.com/user-attachments/assets/058bd49e-ae57-45b6-8b92-0c6c828aa5df)
 
 5. **Control the robot**
    You should now be able to control the robot using natural language. Try out the following examples:
@@ -204,16 +199,16 @@ You should see the following on your terminal:
 
 ### How the Agent Controls the Robot
 
-- The **Agent** primarily interacts with the robot using custom **ROS2 services**.
+- The agent primarily controls the robot using custom ROS2 services.
 - Each _custom_ service is implemented as an executable located in the `scripts` folder.
 - A launch file is provided to start all the required _custom_ services. You can start the services using the following command:
   ```bash
-  ros2 launch ur_agent 
+  ros2 launch ur_agent agent.launch.py
   ```
 
 ### Tools and Capabilities
 
-This package provides several tools for controlling the robot and monitoring its state. Apart from the custom tools described below, ROSA can utilize a wide range of ROS2 topics and services to perform its actions autonomously. In this context, a tool is a functional module integrated into ROSA that provides a specific capability, such as retrieving data, commanding motions, or managing controllers.
+This package provides several tools for controlling the robot and monitoring its state. Apart from the custom tools described in the following sections, ROSA can utilize a wide range of ROS2 topics and services to perform its actions autonomously. In this context, a tool is a functional module integrated into ROSA that provides a specific capability, such as retrieving data, commanding motions, or managing controllers.
 To see the full list of available tools, simply type:
 ```plaintext
 list available tools
@@ -226,13 +221,14 @@ The `publish_joint_positions` tool enables you to command the UR5e robot to move
 
 **How it Works**
 - The tool first checks if the scaled_joint_trajectory_controller is active.
-- It initializes the current joint states and updates only the specified joints, keeping the rest unchanged.
-- The tool constructs a trajectory message, including the target positions and motion duration, and publishes it to the appropriate topic.
+- It reads the current joint states by subscribing to _/joint_states_ topic and updates the value of specified joints, keeping the rest unchanged.
+- The tool constructs a trajectory message, including the target positions and motion duration, and publishes it to the _/scaled_joint_trajectory_controller/joint_trajectory_ topic.
 
 **Example**:
 To move the robot's joints to specific positions over 5 seconds, you might issue:
 ```plaintext
 Move the robot's joints to positions [-90, -90, -120, 0, -90, 180] in 5 seconds.
+Move the wrist2 joint by -20 degrees.
 ```
 
 #### Retrieve Joint States
@@ -248,37 +244,18 @@ The `retrieve_joint_states` tool allows you to query the current positions of th
 What are the current joint states in degrees
 ```
 
-#### List Controllers
-The `list_controllers` tool allows you to check the currently loaded controllers on the robot and their statuses.
-
-**How it Works**
-- The tool sends a service request to /controller_manager/list_controllers
-- It parses the response to extract the controller names and their statuses.
-- The output is formatted into a human-readable list, making it easy for the user to identify active and inactive controllers.
-  
-**Example**:
-```plaintext
-Give me a list of all controllers
-```
-
-
-#### Switch Controllers
-The `switch_controllers` tool allows you to dynamically switch between controllers on the robot, enabling one controller while disabling another in a single operation.
+#### activate_controller_request
+The `activate_controller_request` tool allows you to activate the desired controller that commands the robot while disabling all conflicting controllers. It does this using a custom service _controller_switcher_ which uses the controller manager to switch controllers (specifically using _/controller_manager/switch_controller_)
 
 **Key Features**
-- Supports switching between:
-   - _scaled_joint_trajectory_controller_ (ID: 1)
-   - _cartesian_motion_controller_ (ID: 2)
+- Currently supports switching between:
+   - _scaled_joint_trajectory_controller_ 
+   - _cartesian_motion_controller_ 
 - Ensures the correct controller is active for specific robot operations, such as joint motion or Cartesian motion.
-  
-**How it Works**
-- The tool maps controller IDs to their respective names (_scaled_joint_trajectory_controller_ and _cartesian_motion_controller_).
-- It constructs a service request with the desired controllers to enable and disable.
-- The tool waits for the service to respond and checks the success status of the operation.
   
 **Example**:
 ```plaintext
-Can you switch to scaled joint trajectory controller?
+Can you activate scaled joint trajectory controller?
 ```
 
 #### Cartesian Motion Request
@@ -292,6 +269,7 @@ The `Cartesian Motion Request` tool enables precise Cartesian control of the rob
 **Example**:
 ```plaintext
 can you move the tcp to 0.2,0.5,0.7
+can you move the tcp 20cm upward
 ```
 #### Get Current Pose
 The `Get Current Pose` tool allows you to retrieve the current position and orientation of the robot’s Tool Center Point (TCP).
@@ -306,5 +284,4 @@ The `Get Current Pose` tool allows you to retrieve the current position and orie
 What is the current position of the TCP
 ```
 ## Bugs
-- The commands may not work consistently, as the same request to the Agent can sometimes succeed and other times fail. This behavior appears to stem from the inherent limitations of large language models (LLMs), which can introduce variability in interpreting and processing commands.
-- If there is an error finding the pose of the tcp or moving the tcp, ask the agent to switch from _scaled_joint_trajectory_controller_ to _cartesian_motion_controller_. The agent is supposed to do this on its own as mentioned in the _prompts.py_ but misses this step sometimes.
+- currently limited by the number of tools available.
