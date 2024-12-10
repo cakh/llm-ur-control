@@ -15,6 +15,13 @@ def generate_launch_description():
         output='screen',
         respawn=False,  
     )
+    switch_controller_node = Node(
+        package='ur_agent',  
+        executable='controller_switcher.py', 
+        name='controller_switcher',
+        output='screen',
+        respawn=False,  
+    )
     ur_agent_node = Node(
         package='ur_agent', 
         executable='ur_agent.py',
@@ -25,6 +32,7 @@ def generate_launch_description():
     # Build the launch description
     return LaunchDescription([
         cartesian_motion_control_node,
+        switch_controller_node,
        # ur_agent_node,
     ])
 

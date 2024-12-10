@@ -18,17 +18,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from custom_msgs.srv import MoveToPose
 import time
+from controller_manager_msgs.srv import ListControllers, LoadController, ConfigureController
 
 class CartesianMotionController(Node):
     def __init__(self):
         super().__init__("cartesian_motion_controller")
 
+        # Ensure the controller is loaded and configured
+        if not self.ensure_controller_loaded_and_configured():
+            self.get_logger().error("Failed to prepare the Cartesian Motion Controller. Exiting.")
+            rclpy.shutdown()
+            return
+        
         # Subscriber to get the current pose of the robot
         self.current_pose_subscription = self.create_subscription(
             PoseStamped,
@@ -116,13 +122,110 @@ class CartesianMotionController(Node):
 
         self.get_logger().warn("Timeout reached before target pose. check if cartesian_motion_controller is active")
         return False
+    
+    def ensure_controller_loaded_and_configured(self):
+        """Ensure the controller is loaded, configured, and ready."""
+        if not self.is_controller_loaded():
+            self.get_logger().info("Controller is not loaded. Attempting to load it...")
+            if not self.load_controller():
+                self.get_logger().error("Failed to load the controller.")
+                return False
 
+        if not self.is_controller_configured():
+            self.get_logger().info("Controller is not configured. Attempting to configure it...")
+            if not self.configure_controller():
+                self.get_logger().error("Failed to configure the controller.")
+                return False
+
+        self.get_logger().info("Controller is loaded and configured.")
+        return True
+
+    def is_controller_loaded(self):
+        """Check if the controller is loaded."""
+        controller_state = self.get_controller_state()
+        return controller_state != "not loaded"
+
+    def is_controller_configured(self):
+        """Check if the controller is configured."""
+        controller_state = self.get_controller_state()
+        return controller_state in ["inactive", "active"]
+    
+    def get_controller_state(self):
+        """Get the current state of the controller."""
+        list_controllers_client = self.create_client(ListControllers, "/controller_manager/list_controllers")
+        if not list_controllers_client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error("Controller Manager service is not available.")
+            return "not loaded"
+
+        request = ListControllers.Request()
+        future = list_controllers_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        if not future.done():
+            self.get_logger().error("Failed to call ListControllers service.")
+            return "not loaded"
+
+        response = future.result()
+        for controller in response.controller:
+            if controller.name == "cartesian_motion_controller":
+                return controller.state
+
+        return "not loaded"
+
+
+    def load_controller(self):
+        """Load the controller."""
+        load_controller_client = self.create_client(LoadController, "/controller_manager/load_controller")
+        if not load_controller_client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error("Load Controller service is not available.")
+            return False
+
+        request = LoadController.Request()
+        request.name = "cartesian_motion_controller"
+        future = load_controller_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        if not future.done():
+            self.get_logger().error("Failed to call LoadController service.")
+            return False
+
+        response = future.result()
+        if not response.ok:
+            self.get_logger().error(f"Failed to load controller: {response}")
+        return response.ok
+
+
+    def configure_controller(self):
+        """Configure the controller."""
+        configure_controller_client = self.create_client(ConfigureController, "/controller_manager/configure_controller")
+        if not configure_controller_client.wait_for_service(timeout_sec=5.0):
+            self.get_logger().error("Configure Controller service is not available.")
+            return False
+
+        request = ConfigureController.Request()
+        request.name = "cartesian_motion_controller"
+        future = configure_controller_client.call_async(request)
+        rclpy.spin_until_future_complete(self, future)
+
+        if not future.done():
+            self.get_logger().error("Failed to call ConfigureController service.")
+            return False
+
+        response = future.result()
+        return response.ok
 
 def main(args=None):
     rclpy.init(args=args)
-    node = CartesianMotionController()
-    rclpy.spin(node)
-    rclpy.shutdown()
+    node = None
+    try:
+        node = CartesianMotionController()
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        if node is not None:
+            node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":

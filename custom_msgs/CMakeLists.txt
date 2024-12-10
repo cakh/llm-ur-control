@@ -29,6 +29,7 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/MoveToPose.srv"
+  "srv/CustomSwitchController.srv"
   DEPENDENCIES std_msgs geometry_msgs# Add packages that above messages depend on, in this case geometry_msgs for Sphere.msg
 )
 

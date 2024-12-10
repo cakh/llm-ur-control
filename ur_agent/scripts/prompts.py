@@ -31,6 +31,7 @@ def get_prompts():
         critical_instructions=(
             "1. Confirm that the desired controller is active before executing motion command.\n"
             "2. Ensure all joint position commands use float values (e.g., 0.0 instead of 0).\n"
+            "3. Your joints from base to end effector in order are shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint.\n"
         ),
         constraints_and_guardrails=(
 

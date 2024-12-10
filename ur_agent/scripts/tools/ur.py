@@ -18,37 +18,33 @@ import rclpy
 import rclpy.publisher
 from langchain.agents import tool
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from typing import List, Dict, Tuple
+from typing import List
 from sensor_msgs.msg import JointState
 import threading
-from controller_manager_msgs.srv import ListControllers
 import time 
-from controller_manager_msgs.srv import SwitchController
-from custom_msgs.srv import MoveToPose
+from custom_msgs.srv import MoveToPose, CustomSwitchController
 from geometry_msgs.msg import Pose, PoseStamped
 
 _shared_node = None
 joint_traj_publisher = None
 current_joint_states = None
-controller_status_client = None
-switch_service_client = None
 cartesian_motion_client = None
 joint_states_received = False 
 cartesian_motion_client = None
 current_ef_pose = None
+controller_switcher_client = None
 
 
 def initialize_node():
-    global _shared_node, joint_traj_publisher, controller_status_client, switch_service_client, cartesian_motion_client,current_ef_pose
+    global _shared_node, joint_traj_publisher, cartesian_motion_client,current_ef_pose, controller_switcher_client
     if _shared_node is None:
         print("Initializing ROS node and starting spin thread...")
         rclpy.init()
         _shared_node = rclpy.create_node('ur_agent_node')
         joint_traj_publisher = _shared_node.create_publisher(JointTrajectory, '/scaled_joint_trajectory_controller/joint_trajectory', 10)
         _shared_node.create_subscription(JointState, '/joint_states', joint_state_callback, 10)
-        controller_status_client = _shared_node.create_client(ListControllers, '/controller_manager/list_controllers')
-        switch_service_client = _shared_node.create_client(SwitchController, '/controller_manager/switch_controller')
         cartesian_motion_client = _shared_node.create_client(MoveToPose, "move_to_pose")
+        controller_switcher_client = _shared_node.create_client(CustomSwitchController, "controller_switcher")
         _shared_node.create_subscription(PoseStamped, '/cartesian_motion_controller/current_pose', pose_callback, 10)
 
         def spin_node():
@@ -65,18 +61,19 @@ def initialize_node():
 
 def joint_state_callback(msg):
     global current_joint_states,joint_states_received
-    current_joint_states = list(msg.position)
+    current_joint_states = [msg.position[-1]] + list(msg.position[:-1])
     joint_states_received = True
 
 def pose_callback(msg):
     global current_ef_pose
     current_ef_pose = msg
-
+    
 @tool
 def publish_joint_positions(joint_positions: List[float], duration_sec: int = 5) -> str:
     """
         Publishes a `JointTrajectory` message to command the UR5e robot to move its joints to specified positions.
-        Crictical: Check if `scaled_joint_trajectory_controller` is active. If not active, activate it before running.
+        Crictical: activate scaled_joint_trajectory_controller before running.
+        
         :param joint_positions: List of up to six joint positions in radians.
         :param duration_sec: Motion duration in seconds (default: 5).
         :return: Success message or error details.
@@ -88,6 +85,8 @@ def publish_joint_positions(joint_positions: List[float], duration_sec: int = 5)
     print("Waiting for joint states to be available...")
 
     try:
+        
+        print("scaled_joint_trajectory_controller is active.")
 
         # Timeout for waiting for joint states
         timeout = 10  # seconds
@@ -160,7 +159,10 @@ def retrieve_joint_states() -> str:
             rclpy.spin_once(_shared_node, timeout_sec=0.1)
             if time.time() - start_time > timeout:
                 return "Error: Timed out waiting for joint states to become available."
-
+       
+        # Spin to ensure the latest joint state message is processed
+        for _ in range(3):  # Spin multiple times to avoid timing issues
+            rclpy.spin_once(_shared_node, timeout_sec=0.1)
         
         # Format the joint states as a string for return
         joint_states_str = ", ".join([f"{state:.4f}" for state in current_joint_states])
@@ -174,114 +176,56 @@ def retrieve_joint_states() -> str:
         return error_msg
 
 @tool
-def list_controllers() -> str:
+def activate_controller_request(controller_name: str) -> str:
     """
-    Retrieves the list of controllers and their statuses (active/inactive) from the robot.
+        Activates the specified controller.
 
-    :return: A formatted string listing each controller's name and its status or an error message in case of failure.
+        :param controller_name: The name of the controller to activate ("cartesian_motion_controller" or "scaled_joint_trajectory_controller")
+        :return: Service response or error message.
     """
-    global _shared_node, controller_status_client
+    global controller_switcher_client
     initialize_node()
-    print("Fetching the list of controllers and their statuses...")
-
+    valid_controllers = [
+        "cartesian_motion_controller",
+        "scaled_joint_trajectory_controller",
+    ]
     try:
-    # Ensure the service client is available
-        if not controller_status_client.wait_for_service(timeout_sec=5.0):
-            return "Error: Service /controller_manager/list_controllers not available."
-        service_type = ListControllers        
-        req = service_type.Request()
-        future = controller_status_client.call_async(req)
+        if controller_name not in valid_controllers:
+            return f"Error: Controller {controller_name} is not valid. Valid controllers are: {valid_controllers}"
 
-        # Wait for the future to complete with a timeout
-        start_time = time.time()
+        if not controller_switcher_client.wait_for_service(timeout_sec=5.0):
+            return "Error: Service switch_controller not available."
+
+        request = CustomSwitchController.Request()
+        request.controller_name = controller_name
+        future = controller_switcher_client.call_async(request)
+
+        # Wait for the response with a timeout
         timeout = 10  # seconds
-        # Wait for the response
+        start_time = time.time()
+
         while not future.done():
             rclpy.spin_once(_shared_node, timeout_sec=0.1)
             if time.time() - start_time > timeout:
-                return "Error: Timed out waiting for the list of controllers."
+                return f"Error: Timed out waiting for the ControllerSwitcher service response for {controller_name}."
 
         response = future.result()
-        # Format the controllers and their statuses
-        controllers_info = []
-        for controller in response.controller:
-            status = "active" if controller.state == "active" else "inactive"
-            controllers_info.append(f"{controller.name}: {status}")
-        result = "\n".join(controllers_info)
-        print(f"Controllers and statuses:\n{result}")
-        return f"Controllers and their statuses:\n{result}"
-
-
-    except Exception as e:
-        error_msg = f"Error fetching controllers and their statuses: {e}"
-        print(error_msg)
-        return error_msg
-    
-@tool
-def switch_controllers(enable_controller: int, disable_controller: int) -> str:
-    """
-    Switches robot controllers by enabling one and disabling another in a single operation.
-
-    Controllers are identified by numbers:
-    - 1: scaled_joint_trajectory_controller
-    - 2: cartesian_motion_controller
-
-    :param enable_controller: Number of the controller to enable.
-    :param disable_controller: Number of the controller to disable.
-    :return: Status message indicating success or failure."""
-    global _shared_node
-    initialize_node()
-    # Map controller numbers to their names
-    controller_map = {
-        1: "scaled_joint_trajectory_controller",
-        2: "cartesian_motion_controller"
-    }
-
-    if enable_controller not in controller_map or disable_controller not in controller_map:
-        return ("Error: Invalid controller number(s). "
-                "Available options: 1 (scaled_joint_trajectory_controller), 2 (cartesian_motion_controller).")
-    # Get controller names
-    start_controller = controller_map[enable_controller]
-    stop_controller = controller_map[disable_controller]
-
-    print(f"Enabling controller: {start_controller}, Disabling controller: {stop_controller}...")
-
-    try:
-        # Ensure the service client for switch_controllers is available
-        if not switch_service_client.wait_for_service(timeout_sec=5.0):
-            return "Error: Service /controller_manager/switch_controller not available."
-
-        # Create and send the request
-        req = SwitchController.Request()
-        req.start_controllers = [start_controller]
-        req.stop_controllers = [stop_controller]
-        req.strictness = SwitchController.Request.STRICT
-
-        future = switch_service_client.call_async(req)
-        start_time = time.time()
-        timeout = 10  # seconds
-        while not future.done():
-            rclpy.spin_once(_shared_node, timeout_sec=0.1)
-            if time.time() - start_time > timeout:
-                return "Error: Timed out waiting for controller switch response."
-        
-        response = future.result()
-        # Check the response success
-        if response.ok:
-            return f"Successfully switched controllers: Enabled {start_controller}, Disabled {stop_controller}."
+        if response.success:
+            return f"Controller {controller_name} activated successfully. Message: {response.message}"
         else:
-            return "Error: Failed to switch controllers. Service returned failure."
-
+            return f"Error: {response.message}"
+    
     except Exception as e:
-        error_msg = f"Error switching controllers: {e}"
+        error_msg = f"Error switching controller: {e}"
         print(error_msg)
         return error_msg
     
+
 @tool
 def cartesian_motion_request(x: float, y: float, z: float) -> str:
     """
         Moves the robot TCP to the mentioned cartesian position,
-        If `cartesian_motion_controller` is not active, activate it before running.
+        Crictical: activate cartesian_motion_controller before running.
 
         :param x: Target x-coordinate (meters).
         :param y: Target y-coordinate (meters).
@@ -300,6 +244,8 @@ def cartesian_motion_request(x: float, y: float, z: float) -> str:
     pose.orientation.w = 0.0
 
     try:
+        print("cartesian_motion_controller is active.")
+
         if not cartesian_motion_client.wait_for_service(timeout_sec=5.0):
             return "Error: Service move_to_pose not available."
         request = MoveToPose.Request()
@@ -326,8 +272,8 @@ def cartesian_motion_request(x: float, y: float, z: float) -> str:
 @tool
 def get_current_pose() -> str:
     """
-        Retrieves the current end effector pose of the robot in Cartesian coordinates (`x`, `y`, `z`) and quaternion orientation (`qx`, `qy`, `qz`, `qw`).
-        If `cartesian_motion_controller` is not active, activate it before running.
+        Retrieves the current end effector pose of the robot in Cartesian coordinates.
+        Crictical: activate cartesian_motion_controller before running.
 
         :return: Current pose as a formatted string or an error message.
     """
@@ -335,6 +281,8 @@ def get_current_pose() -> str:
     initialize_node()
     print("Waiting for current pose to be available...")
     try:
+        print("cartesian_motion_controller is active.")
+
         start_time = time.time()
         timeout = 10  # seconds
 

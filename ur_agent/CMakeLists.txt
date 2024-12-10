@@ -28,20 +28,12 @@ install(
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-# Install Python scripts
-install(
-  PROGRAMS 
-    scripts/cartesian_motion_server.py
-  DESTINATION lib/${PROJECT_NAME}
-
-)
-
 # Install Python scripts and tools
 install(
   DIRECTORY 
     scripts/
     scripts/tools/
-  DESTINATION lib/${PROJECT_NAME}/scripts
+  DESTINATION lib/${PROJECT_NAME}
   USE_SOURCE_PERMISSIONS
 )
 
