@@ -277,15 +277,8 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
         arguments=["cartesian_motion_controller"],
     )
-    scaled_trajectory_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        name="scaled_joint_trajectory_controller",
-        output="screen",
-        arguments=["scaled_joint_trajectory_controller"],
-    )
 
-    nodes_to_start = [move_group_node, rviz_node, servo_node, cartesian_motion_controller_spawner, scaled_trajectory_controller_spawner]
+    nodes_to_start = [move_group_node, rviz_node, servo_node, cartesian_motion_controller_spawner]
 
     return nodes_to_start
 
