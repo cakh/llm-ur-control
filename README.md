@@ -1,6 +1,6 @@
 # llm-ur-control
 
-A ROS2 package integrating large language models (LLMs) to control Universal Robots, leveraging the ROSA framework for natural langauge based robotic manipulation.
+A ROS2 package integrating large language models (LLMs) to control Universal Robots, leveraging the ROSA framework for natural langauge based robotic manipulation. Use natural language such as _move tcp up by 20cm_ to control the robot.
 ## llm-ur-control Demo
 [![Demo Video](https://img.youtube.com/vi/Ooi772csa10/0.jpg)](https://youtu.be/Ooi772csa10)
 ## Features
